@@ -11,7 +11,7 @@ export default function Header() {
         <p className="text-amarelo-400 text-xs font-semibold uppercase tracking-widest mb-1">
           Copa do Mundo 2026
         </p>
-        <h1 className="font-display text-5xl sm:text-6xl tracking-wider leading-none">
+        <h1 className="font-display text-5xl sm:text-5xl tracking-wider leading-none">
           🇧🇷 BRASIL <span className="text-amarelo-400">×</span> JAPÃO 🇯🇵
         </h1>
         <p className="text-verde-100 text-sm mt-2 font-body">
