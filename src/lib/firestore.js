@@ -1,5 +1,6 @@
-// src/lib/firestore.js
+import { initializeApp } from 'firebase/app';
 import {
+  getFirestore,
   collection,
   addDoc,
   onSnapshot,
@@ -11,19 +12,25 @@ import {
   serverTimestamp,
   getDoc,
 } from 'firebase/firestore';
-import { db } from './firebase';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCP0SERdeuTpc08GBP0MuujFkgQqGG36ts",
+  authDomain: "bolao-brasil-japao.firebaseapp.com",
+  projectId: "bolao-brasil-japao",
+  storageBucket: "bolao-brasil-japao.firebasestorage.app",
+  messagingSenderId: "649514126116",
+  appId: "1:649514126116:web:b7eee7e701f585646e01b1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 const PALPITES_COL = 'palpites';
 const SCORES_COL = 'scores_count';
 const MAX_SAME_SCORE = 2;
 
-// Chave para contagem de palpites iguais: "brasilGols-japaoGols"
 const scoreKey = (b, j) => `${b}-${j}`;
 
-/**
- * Tenta adicionar um palpite com transação atômica.
- * Retorna { success: true } ou { success: false, reason: string }
- */
 export async function addPalpite(nome, golsBrasil, golsJapao) {
   const key = scoreKey(golsBrasil, golsJapao);
   const scoreRef = doc(db, SCORES_COL, key);
@@ -38,20 +45,18 @@ export async function addPalpite(nome, golsBrasil, golsJapao) {
         return { success: false, reason: 'limite' };
       }
 
-      // Atualiza ou cria contador do placar
       if (scoreDoc.exists()) {
         transaction.update(scoreRef, { count: count + 1 });
       } else {
         transaction.set(scoreRef, { count: 1 });
       }
 
-      // Adiciona o palpite
       const newPalpiteRef = doc(palpitesRef);
       transaction.set(newPalpiteRef, {
         nome: nome.trim(),
         golsBrasil: Number(golsBrasil),
         golsJapao: Number(golsJapao),
-        status: 'aguardando', // 'aguardando' | 'confirmado'
+        status: 'aguardando',
         criadoEm: serverTimestamp(),
       });
 
@@ -65,9 +70,6 @@ export async function addPalpite(nome, golsBrasil, golsJapao) {
   }
 }
 
-/**
- * Listener em tempo real para todos os palpites
- */
 export function subscribePalpites(callback) {
   const q = query(collection(db, PALPITES_COL), orderBy('criadoEm', 'asc'));
   return onSnapshot(q, (snapshot) => {
@@ -76,17 +78,11 @@ export function subscribePalpites(callback) {
   });
 }
 
-/**
- * Atualiza status do palpite (admin)
- */
 export async function updateStatus(palpiteId, novoStatus) {
   const ref = doc(db, PALPITES_COL, palpiteId);
   await updateDoc(ref, { status: novoStatus });
 }
 
-/**
- * Busca a contagem de um placar específico
- */
 export async function getScoreCount(golsBrasil, golsJapao) {
   const key = scoreKey(golsBrasil, golsJapao);
   const ref = doc(db, SCORES_COL, key);
