@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Palpites: qualquer um pode ler e criar, ninguém deleta pelo app
+    match /palpites/{id} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasAll(['nome', 'golsBrasil', 'golsJapao', 'status', 'criadoEm']) &&
+        request.resource.data.nome is string &&
+        request.resource.data.nome.size() > 0 &&
+        request.resource.data.nome.size() <= 60 &&
+        request.resource.data.golsBrasil is int &&
+        request.resource.data.golsBrasil >= 0 &&
+        request.resource.data.golsBrasil <= 20 &&
+        request.resource.data.golsJapao is int &&
+        request.resource.data.golsJapao >= 0 &&
+        request.resource.data.golsJapao <= 20 &&
+        request.resource.data.status == 'aguardando';
+      // Atualização de status apenas pelo admin (via app — sem auth real aqui)
+      allow update: if
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        request.resource.data.status in ['aguardando', 'confirmado'];
+      allow delete: if false;
+    }
+
+    // Contagem de placares: leitura e escrita livres (a transação controla o limite)
+    match /scores_count/{scoreId} {
+      allow read, write: if true;
+    }
+  }
+}
