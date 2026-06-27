@@ -87,5 +87,25 @@ export async function getScoreCount(golsBrasil, golsJapao) {
   const key = scoreKey(golsBrasil, golsJapao);
   const ref = doc(db, SCORES_COL, key);
   const snap = await getDoc(ref);
+
+  export async function deletePalpite(palpiteId, golsBrasil, golsJapao) {
+  const key = `${golsBrasil}-${golsJapao}`;
+  const scoreRef = doc(db, SCORES_COL, key);
+  const palpiteRef = doc(db, PALPITES_COL, palpiteId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const scoreDoc = await transaction.get(scoreRef);
+      if (scoreDoc.exists() && scoreDoc.data().count > 0) {
+        transaction.update(scoreRef, { count: scoreDoc.data().count - 1 });
+      }
+      transaction.delete(palpiteRef);
+    });
+    return { success: true };
+  } catch (err) {
+    console.error('Erro ao deletar:', err);
+    return { success: false };
+  }
+}
   return snap.exists() ? snap.data().count : 0;
 }
